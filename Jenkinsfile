@@ -2,15 +2,22 @@ pipeline {
   agent any
 
   environment {
-    DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')  // Add this in Jenkins Credentials
+    DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')  // Replace with your Jenkins credential ID
     IMAGE_NAME = "vijaykumarcm/node_js"
     TAG = "${BUILD_NUMBER}"
   }
 
   stages {
-    stage('Clone') {
+
+    stage('Clean Workspace') {
       steps {
-        git 'https://github.com/vijaykumarcm1991/Node_JS.git'
+        deleteDir()  // Clears out previous files to avoid conflicts
+      }
+    }
+
+    stage('Clone Repo') {
+      steps {
+        git branch: 'main', url: 'https://github.com/vijaykumarcm1991/Node_JS.git'
       }
     }
 
@@ -24,7 +31,11 @@ pipeline {
 
     stage('Push to DockerHub') {
       steps {
-        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+        withCredentials([usernamePassword(
+          credentialsId: 'dockerhub-creds',
+          usernameVariable: 'DOCKER_USER',
+          passwordVariable: 'DOCKER_PASS'
+        )]) {
           sh '''
             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
             docker push $IMAGE_NAME:$TAG
@@ -41,13 +52,12 @@ pipeline {
     }
   }
 
-// Post actions can be added here if needed
   post {
-    success {
-      echo 'Pipeline completed successfully!'
-    }
     failure {
-      echo 'Pipeline failed!'
+      echo "Pipeline failed!"
+    }
+    success {
+      echo "Pipeline completed successfully! 🚀"
     }
   }
 }
